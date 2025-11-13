@@ -23,14 +23,6 @@
             position: relative;
         }
 
-        .container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #ffffff;
-        }
-
         .orb {
             width: 20px;
             height: 20px;
@@ -38,6 +30,7 @@
             background-color: black;
             cursor: pointer;
             animation: pulsingBall 2s ease-in-out infinite alternate;
+            /* Start visible and animating immediately */
         }
 
         @keyframes pulsingBall {
@@ -69,6 +62,8 @@
         .text {
             position: absolute;
             bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
             font-family: 'Courier New', Courier, monospace;
             font-size: 14px;
             color: black;
@@ -105,10 +100,8 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="orb"></div>
-        <div class="text">maison</div>
-    </div>
+    <div class="orb"></div>
+    <div class="text">maison</div>
     <canvas id="pageCanvas" class="pixelated-canvas"></canvas>
 
     <script>
@@ -146,9 +139,10 @@
         ctx.webkitImageSmoothingEnabled = false;
         ctx.msImageSmoothingEnabled = false;
 
-        // Capture page content to canvas
+        // Capture page content to canvas at CURRENT animated state
         async function capturePageContent() {
             return new Promise((resolve) => {
+                // Small delay to capture a frame of the animation
                 setTimeout(() => {
                     const refCanvas = document.createElement('canvas');
                     refCanvas.width = canvas.width;
@@ -160,31 +154,56 @@
                     refCtx.fillStyle = '#ffffff';
                     refCtx.fillRect(0, 0, canvas.width, canvas.height);
                     
-                    // Draw the orb
+                    // Get the orb's CURRENT computed style (including transform and filter)
                     const orbRect = orb.getBoundingClientRect();
-                    const centerX = (orbRect.left + orbRect.width / 2) / window.innerWidth * canvas.width;
-                    const centerY = (orbRect.top + orbRect.height / 2) / window.innerHeight * canvas.height;
+                    const orbStyle = window.getComputedStyle(orb);
                     
+                    // Calculate position on canvas (maintaining center)
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    
+                    // Get the current transform to determine scale
+                    const transform = orbStyle.transform;
+                    let scale = 1;
+                    if (transform && transform !== 'none') {
+                        const matrix = new DOMMatrix(transform);
+                        scale = matrix.a; // scale from matrix
+                    }
+                    
+                    // Get current blur amount
+                    const filter = orbStyle.filter;
+                    let blur = 10; // default
+                    if (filter && filter.includes('blur')) {
+                        const match = filter.match(/blur\((\d+)px\)/);
+                        if (match) blur = parseInt(match[1]);
+                    }
+                    
+                    // Draw orb at its CURRENT animated state
+                    const currentRadius = 10 * scale;
+                    const blurRadius = Math.max(blur / 2, 1);
+                    
+                    refCtx.save();
                     refCtx.fillStyle = 'black';
-                    refCtx.filter = 'blur(2px)';
+                    refCtx.filter = `blur(${blurRadius}px)`;
                     refCtx.beginPath();
-                    refCtx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+                    refCtx.arc(centerX, centerY, currentRadius, 0, Math.PI * 2);
                     refCtx.fill();
-                    refCtx.filter = 'none';
+                    refCtx.restore();
                     
-                    // Draw the text
+                    // Draw the text (centered at bottom)
                     const textElement = document.querySelector('.text');
                     const textRect = textElement.getBoundingClientRect();
-                    const textX = (textRect.left + textRect.width / 2) / window.innerWidth * canvas.width;
-                    const textY = (textRect.top + 10) / window.innerHeight * canvas.height;
+                    const textX = canvas.width / 2;
+                    const textY = (textRect.top / window.innerHeight) * canvas.height + 2;
                     
                     refCtx.fillStyle = 'black';
                     refCtx.font = '2px "Courier New", monospace';
                     refCtx.textAlign = 'center';
+                    refCtx.letterSpacing = '0.2px';
                     refCtx.fillText('maison', textX, textY);
                     
                     resolve(refCanvas);
-                }, 100);
+                }, 50); // Capture after a brief moment of animation
             });
         }
 
