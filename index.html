@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orb</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .orb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: black;
+            cursor: pointer;
+            animation: pulsingBall 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulsingBall {
+            0% {
+                transform: scale(4);
+                filter: blur(15px);
+            }
+            100% {
+                transform: scale(1);
+                filter: blur(5px);
+            }
+        }
+
+        .orb:hover {
+            animation: pulsingBallFast 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulsingBallFast {
+            0% {
+                transform: scale(4);
+                filter: blur(15px);
+            }
+            100% {
+                transform: scale(1);
+                filter: blur(5px);
+            }
+        }
+
+        .text {
+            position: absolute;
+            bottom: 30px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            color: black;
+            letter-spacing: 2px;
+        }
+
+        #pageCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            pointer-events: none;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+<body>
+    <div class="orb"></div>
+    <div class="text">maison</div>
+    <canvas id="pageCanvas"></canvas>
+
+    <script>
+        const orb = document.querySelector('.orb');
+        const pageCanvas = document.getElementById('pageCanvas');
+        const pageCtx = pageCanvas.getContext('2d');
+        
+        let isAnimating = true;
+        let isPixelatingOut = false;
+
+        // Set canvas to full page size
+        pageCanvas.width = window.innerWidth;
+        pageCanvas.height = window.innerHeight;
+
+        // CRITICAL: Disable image smoothing
+        pageCtx.imageSmoothingEnabled = false;
+        pageCtx.mozImageSmoothingEnabled = false;
+        pageCtx.webkitImageSmoothingEnabled = false;
+        pageCtx.msImageSmoothingEnabled = false;
+
+        // Capture page content to canvas
+        async function capturePageContent() {
+            return new Promise((resolve) => {
+                // Wait a bit for animations to settle
+                setTimeout(() => {
+                    // Create a reference canvas with page content
+                    const refCanvas = document.createElement('canvas');
+                    refCanvas.width = pageCanvas.width;
+                    refCanvas.height = pageCanvas.height;
+                    const refCtx = refCanvas.getContext('2d');
+                    
+                    // Draw white background
+                    refCtx.fillStyle = 'white';
+                    refCtx.fillRect(0, 0, refCanvas.width, refCanvas.height);
+                    
+                    // Draw the orb (captured at its current blurred state)
+                    const orbRect = orb.getBoundingClientRect();
+                    refCtx.fillStyle = 'black';
+                    refCtx.filter = 'blur(15px)';
+                    refCtx.beginPath();
+                    refCtx.arc(
+                        orbRect.left + orbRect.width / 2,
+                        orbRect.top + orbRect.height / 2,
+                        40, // Large enough to show with blur
+                        0,
+                        Math.PI * 2
+                    );
+                    refCtx.fill();
+                    refCtx.filter = 'none';
+                    
+                    // Draw the text
+                    const textElement = document.querySelector('.text');
+                    const textRect = textElement.getBoundingClientRect();
+                    refCtx.fillStyle = 'black';
+                    refCtx.font = '14px "Courier New", monospace';
+                    refCtx.textAlign = 'center';
+                    refCtx.fillText('maison', textRect.left + textRect.width / 2, textRect.top + 10);
+                    
+                    resolve(refCanvas);
+                }, 100);
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // THE PIXELATION DRAWING ALGORITHM
+        // ═══════════════════════════════════════════════════════════
+        function drawPixelated(ctx, image, width, height, pixelSize) {
+            if (!width || !height || pixelSize < 1) return;
+            
+            const scaledWidth = Math.round(width / pixelSize);
+            const scaledHeight = Math.round(height / pixelSize);
+            
+            if (scaledWidth < 1 || scaledHeight < 1) return;
+            
+            ctx.clearRect(0, 0, width, height);
+            ctx.imageSmoothingEnabled = false;
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            
+            // STEP A: Draw image at TINY size (creates the "pixels")
+            ctx.drawImage(image, 0, 0, scaledWidth, scaledHeight);
+            
+            // STEP B: Scale that tiny image BACK UP to full canvas size
+            ctx.drawImage(
+                pageCanvas,
+                0, 0, scaledWidth, scaledHeight,
+                0, 0, width, height
+            );
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // THE ANIMATION SEQUENCE
+        // ═══════════════════════════════════════════════════════════
+        async function startPagePixelation() {
+            const refCanvas = await capturePageContent();
+            
+            let currentPixelSize = 16;
+            let intervalDelay = 156;
+            
+            function nextPixelStep() {
+                if (currentPixelSize >= 1) {
+                    console.log(`Page pixelation step: ${currentPixelSize}px blocks`);
+                    drawPixelated(pageCtx, refCanvas, pageCanvas.width, pageCanvas.height, currentPixelSize);
+                    
+                    currentPixelSize = Math.floor(currentPixelSize / 2);
+                    intervalDelay *= 0.5;
+                    
+                    setTimeout(nextPixelStep, intervalDelay);
+                } else {
+                    // Animation complete - fade out canvas
+                    pageCanvas.style.transition = 'opacity 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    pageCanvas.style.opacity = '0';
+                    isAnimating = false;
+                    
+                    // Remove canvas after fade
+                    setTimeout(() => {
+                        pageCanvas.style.display = 'none';
+                    }, 800);
+                }
+            }
+            
+            nextPixelStep();
+        }
+
+        // Text pixelate out for click
+        async function startTextPixelateOut(callback) {
+            isPixelatingOut = true;
+            
+            // Show canvas again
+            pageCanvas.style.display = 'block';
+            pageCanvas.style.opacity = '1';
+            pageCanvas.style.transition = 'none';
+            
+            // Capture just the text
+            const textElement = document.querySelector('.text');
+            const textRect = textElement.getBoundingClientRect();
+            
+            const textRefCanvas = document.createElement('canvas');
+            textRefCanvas.width = 200;
+            textRefCanvas.height = 50;
+            const textRefCtx = textRefCanvas.getContext('2d');
+            textRefCtx.fillStyle = 'white';
+            textRefCtx.fillRect(0, 0, 200, 50);
+            textRefCtx.fillStyle = 'black';
+            textRefCtx.font = '14px "Courier New", monospace';
+            textRefCtx.textAlign = 'center';
+            textRefCtx.fillText('maison', 100, 25);
+            
+            const pixelSteps = [1, 2, 4, 8, 16];
+            let stepIndex = 0;
+            let intervalDelay = 78;
+            
+            function nextPixelStep() {
+                if (stepIndex < pixelSteps.length) {
+                    console.log(`Text pixelate out step: ${pixelSteps[stepIndex]}px blocks`);
+                    
+                    // Clear full canvas
+                    pageCtx.fillStyle = 'white';
+                    pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                    
+                    // Draw pixelated text at bottom
+                    const scaledW = Math.round(textRefCanvas.width / pixelSteps[stepIndex]);
+                    const scaledH = Math.round(textRefCanvas.height / pixelSteps[stepIndex]);
+                    
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = textRefCanvas.width;
+                    tempCanvas.height = textRefCanvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.imageSmoothingEnabled = false;
+                    
+                    tempCtx.drawImage(textRefCanvas, 0, 0, scaledW, scaledH);
+                    tempCtx.drawImage(tempCanvas, 0, 0, scaledW, scaledH, 0, 0, textRefCanvas.width, textRefCanvas.height);
+                    
+                    pageCtx.drawImage(tempCanvas, textRect.left, textRect.top);
+                    
+                    stepIndex++;
+                    intervalDelay *= 2;
+                    
+                    setTimeout(nextPixelStep, intervalDelay);
+                } else {
+                    isPixelatingOut = false;
+                    if (callback) callback();
+                }
+            }
+            
+            nextPixelStep();
+        }
+
+        // Start on load
+        window.addEventListener('load', () => {
+            startPagePixelation();
+        });
+
+        // Handle click
+        orb.addEventListener('click', () => {
+            if (isAnimating || isPixelatingOut) return;
+            startTextPixelateOut(() => {
+                window.location.href = 'https://joshualexander.com/music/releases';
+            });
+        });
+    </script>
+</body>
+</html>
