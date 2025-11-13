@@ -117,7 +117,6 @@
         const ctx = canvas.getContext('2d');
         
         let isAnimating = true;
-        let isPixelatingOut = false;
         let timeoutId = null;
 
         // EXACT PARAMETERS FROM PIXELATEDIMAGE COMPONENT
@@ -278,39 +277,6 @@
             }, FADE_DURATION);
         }
 
-        // Text pixelate out for click
-        async function startTextPixelateOut(callback) {
-            isPixelatingOut = true;
-            
-            canvas.style.display = 'block';
-            canvas.style.opacity = '1';
-            canvas.style.transition = 'none';
-            
-            const tempImg = await capturePageContent();
-            
-            const pixelSteps = [1, 2, 4, 8, 16];
-            let stepIndex = 0;
-            let intervalDelay = 78;
-            
-            function nextPixelStep() {
-                if (stepIndex < pixelSteps.length) {
-                    console.log('Text pixelate out step, pixel size:', pixelSteps[stepIndex]);
-                    
-                    drawPixelated(ctx, tempImg, canvas.width, canvas.height, pixelSteps[stepIndex]);
-                    
-                    stepIndex++;
-                    intervalDelay *= 2;
-                    
-                    timeoutId = setTimeout(nextPixelStep, intervalDelay);
-                } else {
-                    isPixelatingOut = false;
-                    if (callback) callback();
-                }
-            }
-            
-            nextPixelStep();
-        }
-
         // Start on load with EXACT stagger delay (Line 72)
         window.addEventListener('load', () => {
             const index = 0;
@@ -321,12 +287,9 @@
             }, staggerDelay);
         });
 
-        // Handle click
+        // Handle click - instant redirect
         orb.addEventListener('click', () => {
-            if (isAnimating || isPixelatingOut) return;
-            startTextPixelateOut(() => {
-                window.location.href = 'https://joshualexander.com/music/releases';
-            });
+            window.location.href = 'https://joshualexander.com/music/releases';
         });
 
         // Cleanup on unmount

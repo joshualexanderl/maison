@@ -4,27 +4,27 @@ A minimal, elegant single-page website featuring a pulsing black orb that serves
 
 ## Description
 
-This project displays a centered black pulsing orb on a white background with "maison" text at the bottom. Both the orb and text pixelate in on page load (16 → 8 → 4 → 2 → 1 pixels). After pixelating in, the orb features a smooth breathing animation that alternates between blurred and focused states. When clicked, the text pixelates out before redirecting to https://joshualexander.com/music/releases. The minimalist aesthetic with retro pixelation effects creates a captivating visual experience.
+This project displays a centered black pulsing orb on a white background with "maison" text at the bottom. The entire page pixelates in on load using the proven PixelatedImage algorithm (16 → 8 → 4 → 2 → 1 pixels). The orb features a smooth breathing animation that alternates between blurred and focused states. When clicked, it instantly redirects to https://joshualexander.com/music/releases. The minimalist aesthetic with retro pixelation effects creates a captivating visual experience.
 
 ## Features
 
 - **Centered Design**: Orb perfectly centered on the page using flexbox
-- **Dual Pixelation System**: Both orb and text use canvas-based pixelation
-  - **Orb Pixelation** on page load: 16px → 8px → 4px → 2px → 1px (smooth)
-  - **Text Pixelation** on page load: 16px → 8px → 4px → 2px → 1px (smooth)
-  - **Text Pixelate Out** on click: 1px → 2px → 4px → 8px → 16px (before redirect)
-  - Based interval: 156ms with 0.5x acceleration per step
-  - Uses the proven PixelatedImage algorithm
-  - Waits for complete pixelation before navigation
+- **Full-Page Pixelation**: Entire page pixelates in on load using exact PixelatedImage algorithm
+  - **Algorithm**: 16px → 8px → 4px → 2px → 1px (smooth progression)
+  - **Timing**: 156ms base with 0.5x acceleration per step
+  - **Canvas**: Fixed 128px width for optimal performance
+  - **Total Duration**: ~442ms pixelation + 800ms fade = ~1.2s
+  - Captures blurred orb and text together
+  - Uses the proven algorithm from portfolio (lines 94-130)
 - **Smooth Pulsing Animation**: After pixelating in, orb has 2-second breathing effect
   - Scale: 4x (large) → 1x (small)
   - Blur: 15px (soft) → 5px (sharp)
   - Uses `ease-in-out` timing for natural motion
-- **Monospaced Typography**: Smaller 14px Courier New font with letter-spacing
-- **Interactive Animations**: 
+- **Monospaced Typography**: 14px Courier New font with letter-spacing
+- **Interactive**: 
   - Hover effect speeds up orb pulsing to 1 second
-  - Click triggers text pixelate-out animation then redirects
-- **Glitch-Free**: Proper canvas layering and timing prevents artifacts
+  - Click instantly redirects to music releases page
+- **Exact Replication**: Uses identical parameters from PixelatedImage component
 - **Responsive**: Works on all screen sizes
 - **Clean Code**: Pure HTML/CSS/JavaScript - no dependencies
 
@@ -49,10 +49,9 @@ Upload the `index.html` file to any web server or hosting platform:
 ## Usage
 
 1. Open the page in a browser
-2. Watch both the orb and "maison" text pixelate in from blocky to clear (16px → 1px)
+2. Watch the entire page pixelate in from blocky to clear (16px → 1px) - total ~1.2s
 3. After pixelating in, the orb starts its smooth pulsing animation
-4. Click the orb to trigger the text pixelation out effect
-5. The text pixelates back out (1px → 16px) before redirecting to https://joshualexander.com/music/releases
+4. Click the orb to instantly redirect to https://joshualexander.com/music/releases
 
 ## Technical Details
 
@@ -85,6 +84,14 @@ Works on all modern browsers:
 - Opera (latest)
 
 ## Version History
+
+### v3.0.0 (November 13, 2025)
+- **Implemented EXACT PixelatedImage algorithm** from portfolio site
+- Full-page pixelation with blurred orb effect
+- Exact parameters: 128px canvas, 156ms base, 0.5x acceleration
+- Removed pixelate-out animation (instant redirect on click)
+- Simplified interaction model
+- All timing matches portfolio implementation line-by-line
 
 ### v2.2.0 (November 13, 2025)
 - **Added orb pixelation on page load** - Orb now pixelates in using the same algorithm as text
