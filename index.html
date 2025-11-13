@@ -23,6 +23,14 @@
             position: relative;
         }
 
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
         .orb {
             width: 20px;
             height: 20px;
@@ -71,76 +79,110 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 9999;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
             pointer-events: none;
             image-rendering: pixelated;
             image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
             image-rendering: crisp-edges;
+            -ms-interpolation-mode: nearest-neighbor;
+            opacity: 1;
+            transition: none;
+        }
+
+        .pixelated-canvas {
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            -ms-interpolation-mode: nearest-neighbor;
+            image-rendering: optimizeSpeed;
+            image-rendering: -o-crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
         }
     </style>
 </head>
 <body>
-    <div class="orb"></div>
-    <div class="text">maison</div>
-    <canvas id="pageCanvas"></canvas>
+    <div class="container">
+        <div class="orb"></div>
+        <div class="text">maison</div>
+    </div>
+    <canvas id="pageCanvas" class="pixelated-canvas"></canvas>
 
     <script>
         const orb = document.querySelector('.orb');
-        const pageCanvas = document.getElementById('pageCanvas');
-        const pageCtx = pageCanvas.getContext('2d');
+        const canvas = document.getElementById('pageCanvas');
+        const ctx = canvas.getContext('2d');
         
         let isAnimating = true;
         let isPixelatingOut = false;
+        let timeoutId = null;
 
-        // Set canvas to full page size
-        pageCanvas.width = window.innerWidth;
-        pageCanvas.height = window.innerHeight;
+        // EXACT PARAMETERS FROM PIXELATEDIMAGE COMPONENT
+        const CANVAS_WIDTH = 128;  // Line 60: Fixed canvas width
+        const START_PIXEL_SIZE = 16;  // Line 29, 136: Starting pixel size
+        const BASE_DELAY = 156;  // Line 137: Original timing
+        const ACCELERATION = 0.5;  // Line 150: Acceleration rate
+        const STAGGER_BASE = 150;  // Line 72: First image delay
+        const FADE_DURATION = 800;  // Lines 228, 246: Fade duration
+        const EASING_CURVE = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)';  // Lines 228, 246
 
-        // CRITICAL: Disable image smoothing
-        pageCtx.imageSmoothingEnabled = false;
-        pageCtx.mozImageSmoothingEnabled = false;
-        pageCtx.webkitImageSmoothingEnabled = false;
-        pageCtx.msImageSmoothingEnabled = false;
+        // Set canvas size
+        const containerRect = document.body.getBoundingClientRect();
+        const safeContainerW = Math.max(0, Math.floor(containerRect.width));
+        const safeContainerH = Math.max(0, Math.floor(containerRect.height));
+        let aspectRatio = 1;
+        if (safeContainerW > 0 && safeContainerH > 0) {
+            aspectRatio = safeContainerH / safeContainerW;
+        }
+
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = Math.max(1, Math.floor(CANVAS_WIDTH * aspectRatio));
+
+        // Disable image smoothing for pixelated effect (EXACT from legacy)
+        ctx.imageSmoothingEnabled = false;
+        ctx.mozImageSmoothingEnabled = false;
+        ctx.webkitImageSmoothingEnabled = false;
+        ctx.msImageSmoothingEnabled = false;
 
         // Capture page content to canvas
         async function capturePageContent() {
             return new Promise((resolve) => {
-                // Wait a bit for animations to settle
                 setTimeout(() => {
-                    // Create a reference canvas with page content
                     const refCanvas = document.createElement('canvas');
-                    refCanvas.width = pageCanvas.width;
-                    refCanvas.height = pageCanvas.height;
+                    refCanvas.width = canvas.width;
+                    refCanvas.height = canvas.height;
                     const refCtx = refCanvas.getContext('2d');
+                    refCtx.imageSmoothingEnabled = false;
                     
-                    // Draw white background
-                    refCtx.fillStyle = 'white';
-                    refCtx.fillRect(0, 0, refCanvas.width, refCanvas.height);
+                    // Fill white background
+                    refCtx.fillStyle = '#ffffff';
+                    refCtx.fillRect(0, 0, canvas.width, canvas.height);
                     
-                    // Draw the orb (captured at its current blurred state)
+                    // Draw the orb
                     const orbRect = orb.getBoundingClientRect();
+                    const centerX = (orbRect.left + orbRect.width / 2) / window.innerWidth * canvas.width;
+                    const centerY = (orbRect.top + orbRect.height / 2) / window.innerHeight * canvas.height;
+                    
                     refCtx.fillStyle = 'black';
-                    refCtx.filter = 'blur(15px)';
+                    refCtx.filter = 'blur(2px)';
                     refCtx.beginPath();
-                    refCtx.arc(
-                        orbRect.left + orbRect.width / 2,
-                        orbRect.top + orbRect.height / 2,
-                        40, // Large enough to show with blur
-                        0,
-                        Math.PI * 2
-                    );
+                    refCtx.arc(centerX, centerY, 20, 0, Math.PI * 2);
                     refCtx.fill();
                     refCtx.filter = 'none';
                     
                     // Draw the text
                     const textElement = document.querySelector('.text');
                     const textRect = textElement.getBoundingClientRect();
+                    const textX = (textRect.left + textRect.width / 2) / window.innerWidth * canvas.width;
+                    const textY = (textRect.top + 10) / window.innerHeight * canvas.height;
+                    
                     refCtx.fillStyle = 'black';
-                    refCtx.font = '14px "Courier New", monospace';
+                    refCtx.font = '2px "Courier New", monospace';
                     refCtx.textAlign = 'center';
-                    refCtx.fillText('maison', textRect.left + textRect.width / 2, textRect.top + 10);
+                    refCtx.fillText('maison', textX, textY);
                     
                     resolve(refCanvas);
                 }, 100);
@@ -148,90 +190,103 @@
         }
 
         // ═══════════════════════════════════════════════════════════
-        // THE PIXELATION DRAWING ALGORITHM
+        // EXACT PIXELATION DRAWING ALGORITHM (from PixelatedImage.tsx)
         // ═══════════════════════════════════════════════════════════
-        function drawPixelated(ctx, image, width, height, pixelSize) {
-            if (!width || !height || pixelSize < 1) return;
+        function drawPixelated(context, image, width, height, pixelSize) {
+            if (!width || !height) return;
             
-            const scaledWidth = Math.round(width / pixelSize);
-            const scaledHeight = Math.round(height / pixelSize);
+            // Original reference algorithm
+            const aspectRatio = width / height;
+            const canvasHeight = Math.floor(Math.round(128 / aspectRatio) / pixelSize) * pixelSize;
             
-            if (scaledWidth < 1 || scaledHeight < 1) return;
+            // Set canvas size to fixed 128px width (original approach)
+            const canvasWidth = 128;
+            const scaledWidth = Math.round(canvasWidth / pixelSize);
+            const scaledHeight = Math.round(canvasHeight / pixelSize);
             
-            ctx.clearRect(0, 0, width, height);
-            ctx.imageSmoothingEnabled = false;
+            // Clear canvas
+            context.clearRect(0, 0, width, height);
             
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, width, height);
+            // Disable smoothing for crisp pixels
+            context.imageSmoothingEnabled = false;
+            context.mozImageSmoothingEnabled = false;
+            context.msImageSmoothingEnabled = false;
+            context.webkitImageSmoothingEnabled = false;
             
-            // STEP A: Draw image at TINY size (creates the "pixels")
-            ctx.drawImage(image, 0, 0, scaledWidth, scaledHeight);
+            // Fill with white background
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, scaledWidth, scaledHeight);
             
-            // STEP B: Scale that tiny image BACK UP to full canvas size
-            ctx.drawImage(
-                pageCanvas,
-                0, 0, scaledWidth, scaledHeight,
-                0, 0, width, height
-            );
+            // Draw image at small size
+            context.drawImage(image, 0, 0, scaledWidth, scaledHeight);
+            
+            // Scale back up to full size
+            if (canvas) {
+                context.drawImage(canvas, 0, 0, scaledWidth, scaledHeight, 0, 0, width, height);
+            }
         }
 
         // ═══════════════════════════════════════════════════════════
-        // THE ANIMATION SEQUENCE
+        // THE ANIMATION SEQUENCE (EXACT timing from component)
         // ═══════════════════════════════════════════════════════════
-        async function startPagePixelation() {
-            const refCanvas = await capturePageContent();
+        async function startPixelatedTransition() {
+            const tempImg = await capturePageContent();
             
-            let currentPixelSize = 16;
-            let intervalDelay = 156;
+            console.log('Starting pixelation for page:', 'canvas size:', canvas.width, 'x', canvas.height);
             
+            // Original reference recursive pixelation
+            let currentPixelSize = START_PIXEL_SIZE;  // EXACT: Line 136
+            let intervalDelay = BASE_DELAY;  // EXACT: Line 137 - Original timing
+
             function nextPixelStep() {
                 if (currentPixelSize >= 1) {
-                    console.log(`Page pixelation step: ${currentPixelSize}px blocks`);
-                    drawPixelated(pageCtx, refCanvas, pageCanvas.width, pageCanvas.height, currentPixelSize);
+                    console.log('Pixelation step, pixel size:', currentPixelSize);
                     
+                    if (canvas && ctx) {
+                        drawPixelated(ctx, tempImg, canvas.width, canvas.height, currentPixelSize);
+                    }
+                    
+                    // Divide by 2 (original recursive approach)
                     currentPixelSize = Math.floor(currentPixelSize / 2);
-                    intervalDelay *= 0.5;
                     
-                    setTimeout(nextPixelStep, intervalDelay);
+                    // Original acceleration (EXACT: Line 150)
+                    intervalDelay *= ACCELERATION;
+                    
+                    timeoutId = window.setTimeout(nextPixelStep, intervalDelay);
                 } else {
-                    // Animation complete - fade out canvas
-                    pageCanvas.style.transition = 'opacity 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-                    pageCanvas.style.opacity = '0';
-                    isAnimating = false;
-                    
-                    // Remove canvas after fade
-                    setTimeout(() => {
-                        pageCanvas.style.display = 'none';
-                    }, 800);
+                    // Transition complete - fade out canvas
+                    onTransitionOutComplete();
                 }
             }
-            
+
             nextPixelStep();
+        }
+
+        function onTransitionOutComplete() {
+            // Fade in the real content (EXACT timing from component)
+            requestAnimationFrame(() => {
+                canvas.style.transition = `opacity ${FADE_DURATION}ms ${EASING_CURVE}`;
+                canvas.style.opacity = '0';
+            });
+            
+            isAnimating = false;
+            
+            // Clean up after fade
+            setTimeout(() => {
+                canvas.style.display = 'none';
+                if (timeoutId) clearTimeout(timeoutId);
+            }, FADE_DURATION);
         }
 
         // Text pixelate out for click
         async function startTextPixelateOut(callback) {
             isPixelatingOut = true;
             
-            // Show canvas again
-            pageCanvas.style.display = 'block';
-            pageCanvas.style.opacity = '1';
-            pageCanvas.style.transition = 'none';
+            canvas.style.display = 'block';
+            canvas.style.opacity = '1';
+            canvas.style.transition = 'none';
             
-            // Capture just the text
-            const textElement = document.querySelector('.text');
-            const textRect = textElement.getBoundingClientRect();
-            
-            const textRefCanvas = document.createElement('canvas');
-            textRefCanvas.width = 200;
-            textRefCanvas.height = 50;
-            const textRefCtx = textRefCanvas.getContext('2d');
-            textRefCtx.fillStyle = 'white';
-            textRefCtx.fillRect(0, 0, 200, 50);
-            textRefCtx.fillStyle = 'black';
-            textRefCtx.font = '14px "Courier New", monospace';
-            textRefCtx.textAlign = 'center';
-            textRefCtx.fillText('maison', 100, 25);
+            const tempImg = await capturePageContent();
             
             const pixelSteps = [1, 2, 4, 8, 16];
             let stepIndex = 0;
@@ -239,31 +294,14 @@
             
             function nextPixelStep() {
                 if (stepIndex < pixelSteps.length) {
-                    console.log(`Text pixelate out step: ${pixelSteps[stepIndex]}px blocks`);
+                    console.log('Text pixelate out step, pixel size:', pixelSteps[stepIndex]);
                     
-                    // Clear full canvas
-                    pageCtx.fillStyle = 'white';
-                    pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-                    
-                    // Draw pixelated text at bottom
-                    const scaledW = Math.round(textRefCanvas.width / pixelSteps[stepIndex]);
-                    const scaledH = Math.round(textRefCanvas.height / pixelSteps[stepIndex]);
-                    
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = textRefCanvas.width;
-                    tempCanvas.height = textRefCanvas.height;
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCtx.imageSmoothingEnabled = false;
-                    
-                    tempCtx.drawImage(textRefCanvas, 0, 0, scaledW, scaledH);
-                    tempCtx.drawImage(tempCanvas, 0, 0, scaledW, scaledH, 0, 0, textRefCanvas.width, textRefCanvas.height);
-                    
-                    pageCtx.drawImage(tempCanvas, textRect.left, textRect.top);
+                    drawPixelated(ctx, tempImg, canvas.width, canvas.height, pixelSteps[stepIndex]);
                     
                     stepIndex++;
                     intervalDelay *= 2;
                     
-                    setTimeout(nextPixelStep, intervalDelay);
+                    timeoutId = setTimeout(nextPixelStep, intervalDelay);
                 } else {
                     isPixelatingOut = false;
                     if (callback) callback();
@@ -273,9 +311,14 @@
             nextPixelStep();
         }
 
-        // Start on load
+        // Start on load with EXACT stagger delay (Line 72)
         window.addEventListener('load', () => {
-            startPagePixelation();
+            const index = 0;
+            const staggerDelay = STAGGER_BASE + (index * 100);
+            
+            setTimeout(() => {
+                startPixelatedTransition();
+            }, staggerDelay);
         });
 
         // Handle click
@@ -284,6 +327,11 @@
             startTextPixelateOut(() => {
                 window.location.href = 'https://joshualexander.com/music/releases';
             });
+        });
+
+        // Cleanup on unmount
+        window.addEventListener('beforeunload', () => {
+            if (timeoutId) clearTimeout(timeoutId);
         });
     </script>
 </body>
