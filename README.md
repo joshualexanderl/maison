@@ -85,6 +85,14 @@ Works on all modern browsers:
 
 ## Version History
 
+### v3.1.0 (November 13, 2025)
+- **Natural animation transition** - Captures orb at current animated state
+- Reads transform matrix to get exact scale during animation
+- Reads filter property to get exact blur amount
+- Pixelation reveals already-animating orb underneath
+- Fixed centering for orb and text (properly centered in viewport)
+- Orb starts pulsing immediately for seamless transition
+
 ### v3.0.0 (November 13, 2025)
 - **Implemented EXACT PixelatedImage algorithm** from portfolio site
 - Full-page pixelation with blurred orb effect
