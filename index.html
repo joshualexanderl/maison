@@ -317,29 +317,38 @@
         });
 
         // Initialize 21st.dev toolbar (development only)
-        async function initToolbar() {
-            // Only initialize in development (localhost)
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Framework-agnostic approach - matches 21st.dev documentation
+        async function setupStagewise() {
+            // Only initialize once and only in development mode
+            // For static HTML, we check hostname instead of process.env.NODE_ENV
+            const isDevelopment = window.location.hostname === 'localhost' || 
+                                  window.location.hostname === '127.0.0.1' ||
+                                  window.location.hostname === '';
+            
+            if (isDevelopment) {
                 try {
-                    // Dynamic import for ES module
+                    // 1. Import the toolbar
                     const { initToolbar } = await import('/node_modules/@21st-extension/toolbar/dist/index.es.js');
                     
+                    // 2. Define your toolbar configuration
                     const stagewiseConfig = {
                         plugins: [],
                     };
                     
+                    // 3. Initialize the toolbar when your app starts
                     initToolbar(stagewiseConfig);
                     console.log('21st.dev toolbar initialized');
                 } catch (error) {
                     console.warn('Could not load 21st.dev toolbar:', error);
-                    console.warn('Make sure you are using a dev server that can serve node_modules');
+                    console.warn('Make sure you are using a dev server (npm run dev)');
                 }
             }
         }
 
-        // Initialize toolbar after page loads
+        // Call the setup function when appropriate for your framework
+        // For static HTML, we call it after page loads
         window.addEventListener('load', () => {
-            initToolbar();
+            setupStagewise();
         });
     </script>
 </body>
