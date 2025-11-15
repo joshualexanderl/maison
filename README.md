@@ -25,26 +25,57 @@ This project displays a centered black pulsing orb on a white background with "m
   - Hover effect speeds up orb pulsing to 1 second
   - Click instantly redirects to music releases page
 - **Exact Replication**: Uses identical parameters from PixelatedImage component
+- **21st.dev Toolbar Integration**: AI agent toolbar for browser-to-editor interaction
+  - Select elements in the browser
+  - Send context to Cursor AI agents
+  - Only loads in development mode (localhost)
 - **Responsive**: Works on all screen sizes
-- **Clean Code**: Pure HTML/CSS/JavaScript - no dependencies
+- **Modern Dev Setup**: Vite dev server for ES module support
 
 ## Installation
 
-No installation required! Simply open the `index.html` file in any modern web browser.
+### Development Setup
 
-### Local Setup
+1. Clone this repository:
+```bash
+git clone https://github.com/joshualexanderl/maison.git
+cd maison
+```
 
-1. Download or clone this repository
-2. Open `index.html` in your web browser
-3. Click the orb to navigate to the music releases page
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development server:
+```bash
+npm run dev
+```
+
+The site will open at http://localhost:3008 with the 21st.dev toolbar enabled for AI agent interaction.
+
+### Production Build
+
+Build for production:
+```bash
+npm run build
+```
+
+The built files will be in the `dist/` folder, ready to deploy.
 
 ### Web Hosting
 
-Upload the `index.html` file to any web server or hosting platform:
+Deploy the `dist/` folder (after running `npm run build`) to any static hosting service:
 - GitHub Pages
 - Netlify
 - Vercel
 - Any static hosting service
+
+### Simple Static Setup (No Build)
+
+If you just want to view the site without the toolbar:
+1. Open `index.html` directly in your web browser
+2. The toolbar will not load (requires a dev server for ES modules)
 
 ## Usage
 
@@ -84,6 +115,14 @@ Works on all modern browsers:
 - Opera (latest)
 
 ## Version History
+
+### v3.2.0 (November 15, 2025)
+- **Added 21st.dev toolbar integration** for AI agent interaction
+- Set up Vite dev server for ES module support
+- Toolbar automatically loads in development mode (localhost)
+- Added npm scripts: `dev`, `build`, `preview`
+- Created `.gitignore` for proper dependency management
+- Updated installation instructions for modern dev workflow
 
 ### v3.1.0 (November 13, 2025)
 - **Natural animation transition** - Captures orb at current animated state

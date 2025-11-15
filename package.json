@@ -1,0 +1,26 @@
+{
+  "name": "maison",
+  "version": "1.0.0",
+  "description": "A minimal, elegant single-page website featuring a pulsing black orb that serves as a clickable link.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joshualexanderl/maison.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/joshualexanderl/maison/issues"
+  },
+  "homepage": "https://github.com/joshualexanderl/maison#readme",
+  "devDependencies": {
+    "@21st-extension/toolbar": "^0.5.14",
+    "vite": "^7.2.2"
+  }
+}

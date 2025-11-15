@@ -315,6 +315,32 @@
         window.addEventListener('beforeunload', () => {
             if (timeoutId) clearTimeout(timeoutId);
         });
+
+        // Initialize 21st.dev toolbar (development only)
+        async function initToolbar() {
+            // Only initialize in development (localhost)
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                try {
+                    // Dynamic import for ES module
+                    const { initToolbar } = await import('/node_modules/@21st-extension/toolbar/dist/index.es.js');
+                    
+                    const stagewiseConfig = {
+                        plugins: [],
+                    };
+                    
+                    initToolbar(stagewiseConfig);
+                    console.log('21st.dev toolbar initialized');
+                } catch (error) {
+                    console.warn('Could not load 21st.dev toolbar:', error);
+                    console.warn('Make sure you are using a dev server that can serve node_modules');
+                }
+            }
+        }
+
+        // Initialize toolbar after page loads
+        window.addEventListener('load', () => {
+            initToolbar();
+        });
     </script>
 </body>
 </html>
